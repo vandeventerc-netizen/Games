@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Co-pilot Stress Reliever - Take a Break!</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Font: Poppins -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: none;
+            overflow: hidden;
+        }
+        canvas {
+            display: block;
+            background: linear-gradient(to bottom, #dbeafe, #f3e8ff);
+        }
+        .pop-animation {
+            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+        @keyframes popIn {
+            0% { transform: scale(0.8); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+    </style>
+</head>
+<body class="bg-blue-50 h-screen w-screen flex flex-col justify-between items-center relative">
+
+    <!-- Game Container / Canvas -->
+    <div id="game-container" class="absolute inset-0 w-full h-full cursor-crosshair">
+        <canvas id="gameCanvas"></canvas>
+    </div>
+
+    <!-- Start Menu Modal -->
+    <div id="menu-screen" class="absolute inset-0 bg-black/40 backdrop-blur-sm flex justify-center items-center z-20 p-4">
+        <div class="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl text-center pop-animation border-4 border-blue-200">
+            <div class="text-6xl mb-3">🔫🚀</div>
+            <h1 class="text-2xl font-extrabold text-blue-600 mb-1">Co-pilot Stress Reliever</h1>
+            <p class="text-gray-500 text-sm mb-6">Shoot targets & avoid bombs! Add custom pictures to fall from the sky!</p>
+
+            <!-- Custom Image Upload Section -->
+            <div class="mb-6 p-4 bg-blue-50 rounded-2xl border border-blue-100 text-left">
+                <label class="block text-xs font-bold text-blue-700 uppercase mb-2">Add Custom Falling Pictures (Optional):</label>
+                <div class="flex items-center space-x-3">
+                    <label class="cursor-pointer bg-white text-blue-600 border border-blue-300 hover:bg-blue-50 px-4 py-2 rounded-xl text-xs font-bold shadow-sm transition">
+                        Choose Files <input type="file" id="custom-image-input" multiple accept="image/*" class="hidden">
+                    </label>
+                    <span id="custom-count" class="text-xs text-gray-600 font-semibold">0 added</span>
+                </div>
+                <div id="upload-preview" class="flex space-x-2 mt-3 overflow-x-auto pb-1"></div>
+            </div>
+
+            <button id="start-btn" class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold py-4 rounded-2xl shadow-lg hover:from-blue-700 hover:to-indigo-700 transform hover:-translate-y-0.5 transition active:translate-y-0 text-lg mb-3">
+                Start Shooting 🚀
+            </button>
+            <div class="mt-2 text-xs text-gray-400 font-medium">High Score: <span id="high-score-val">0</span></div>
+        </div>
+    </div>
+
+    <!-- HUD Overlay -->
+    <div id="hud" class="absolute top-0 left-0 w-full p-4 flex justify-between items-center pointer-events-none z-10 hidden">
+        <div class="flex items-center space-x-4 bg-white/80 backdrop-blur-md px-5 py-2.5 rounded-full shadow-lg border border-blue-100">
+            <span class="text-blue-600 font-bold text-lg">Score: <span id="score-val" class="text-gray-800 text-xl">0</span></span>
+        </div>
+        <div class="flex items-center space-x-2 bg-white/80 backdrop-blur-md px-5 py-2.5 rounded-full shadow-lg border border-blue-100">
+            <span class="text-blue-600 font-bold text-lg">Lives:</span>
+            <div id="lives-container" class="flex space-x-1 text-2xl">
+                ❤️ ❤️ ❤️ ❤️ ❤️
+            </div>
+        </div>
+    </div>
+
+    <!-- Game Over Modal -->
+    <div id="gameover-screen" class="absolute inset-0 bg-black/40 backdrop-blur-sm flex justify-center items-center z-20 p-4 hidden">
+        <div class="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl text-center pop-animation border-4 border-rose-200">
+            <div class="text-6xl mb-3">🏁</div>
+            <h2 class="text-3xl font-extrabold text-rose-600 mb-1">Game Over</h2>
+            <p class="too-bad text-gray-500 text-sm mb-6">Game Over! You lost all your lives.</p>
+
+            <div class="bg-rose-50 rounded-2xl p-6 mb-6 border border-rose-100 flex justify-around">
+                <div>
+                    <div class="text-xs text-gray-500 font-bold uppercase">Final Score</div>
+                    <div id="final-score" class="text-3xl font-extrabold text-rose-600">0</div>
+                </div>
+                <div class="border-l border-rose-200"></div>
+                <div>
+                    <div class="text-xs text-gray-500 font-bold uppercase">Best Score</div>
+                    <div id="best-score" class="text-3xl font-extrabold text-gray-800">0</div>
+                </div>
+            </div>
+
+            <button id="restart-btn" class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold py-4 rounded-2xl shadow-lg hover:from-blue-700 hover:to-indigo-700 transform hover:-translate-y-0.5 transition active:translate-y-0 text-lg">
+                Play Again 🚀
+            </button>
+        </div>
+    </div>
+
+    <!-- Pause / Info footer -->
+    <div class="absolute bottom-2 text-xs text-gray-500 z-10 pointer-events-none hidden md:block">
+        Move mouse to steer blaster • Click / Tap / Spacebar to shoot!
+    </div>
+
+    <script>
+        // --- Audio Synthesizer (Web Audio API) ---
+        let audioCtx = null;
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+        }
+
+        function playSound(type) {
+            if (!audioCtx) return;
+            try {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                const now = audioCtx.currentTime;
+
+                if (type === 'shoot') {
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(300, now);
+                    osc.frequency.exponentialRampToValueAtTime(600, now + 0.1);
+                    gain.gain.setValueAtTime(0.1, now);
+                    gain.gain.linearRampToValueAtTime(0.01, now + 0.1);
+                    osc.start(now);
+                    osc.stop(now + 0.1);
+                } else if (type === 'hit') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(600, now);
+                    osc.frequency.exponentialRampToValueAtTime(1000, now + 0.15);
+                    gain.gain.setValueAtTime(0.15, now);
+                    gain.gain.linearRampToValueAtTime(0.01, now + 0.15);
+                    osc.start(now);
+                    osc.stop(now + 0.15);
+                } else if (type === 'miss') {
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(180, now);
+                    osc.frequency.exponentialRampToValueAtTime(80, now + 0.25);
+                    gain.gain.setValueAtTime(0.2, now);
+                    gain.gain.linearRampToValueAtTime(0.01, now + 0.25);
+                    osc.start(now);
+                    osc.stop(now + 0.25);
+                }
+            } catch(e) {
+                console.error("Audio error:", e);
+            }
+        }
+
+        // --- Custom Images Storage ---
+        let customImages = [];
+
+        document.getElementById('custom-image-input').addEventListener('change', (e) => {
+            const files = e.target.files;
+            const previewContainer = document.getElementById('upload-preview');
+            
+            for (let file of files) {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    const img = new Image();
+                    img.src = event.target.result;
+                    img.onload = () => {
+                        customImages.push(img);
+                        document.getElementById('custom-count').textContent = customImages.length;
+                        
+                        const thumb = document.createElement('div');
+                        thumb.className = 'w-10 h-10 rounded-lg overflow-hidden border border-blue-200 shadow-sm flex-shrink-0';
+                        thumb.innerHTML = `<img src="${event.target.result}" class="w-full h-full object-cover">`;
+                        previewContainer.appendChild(thumb);
+                    };
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // --- Game Setup ---
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        let score = 0;
+        let lives = 5;
+        let highScore = localStorage.getItem('copilot_shooter_highscore') || 0;
+        let gameState = 'MENU'; // MENU, PLAYING, GAMEOVER
+        let spawnTimer = 0;
+        let spawnInterval = 70;
+        let gameSpeedMultiplier = 1;
+
+        document.getElementById('high-score-val').textContent = highScore;
+
+        // Player (Gun)
+        const player = {
+            x: window.innerWidth / 2,
+            y: window.innerHeight - 90,
+            width: 80,
+            height: 70,
+            targetX: window.innerWidth / 2,
+            speed: 0.15
+        };
+
+        let items = [];
+        let projectiles = [];
+        let particles = [];
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            player.y = canvas.height - 90;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        window.addEventListener('mousemove', (e) => {
+            if (gameState === 'PLAYING') {
+                player.targetX = e.clientX;
+            }
+        });
+
+        window.addEventListener('touchmove', (e) => {
+            if (gameState === 'PLAYING' && e.touches.length > 0) {
+                player.targetX = e.touches[0].clientX;
+            }
+        }, { passive: true });
+
+        function shootProjectile() {
+            if (gameState !== 'PLAYING') return;
+            projectiles.push({
+                x: player.x,
+                y: player.y - 30,
+                radius: 8,
+                vy: -12
+            });
+            playSound('shoot');
+        }
+
+        window.addEventListener('click', () => {
+            shootProjectile();
+        });
+
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                e.preventDefault();
+                shootProjectile();
+            }
+        });
+
+        // Falling Target Class
+        class FallingTarget {
+            constructor() {
+                this.x = Math.random() * (canvas.width - 140) + 70;
+                this.y = -60;
+                this.vy = (Math.random() * 2 + 2) * gameSpeedMultiplier;
+                this.rotation = 0;
+                this.rotSpeed = (Math.random() - 0.5) * 0.04;
+
+                this.isEvil = Math.random() < 0.28;
+
+                if (this.isEvil) {
+                    this.radius = 32;
+                    const evils = ['💣', '😈', '☠️', '⚡'];
+                    this.emoji = evils[Math.floor(Math.random() * evils.length)];
+                } else if (customImages.length > 0 && Math.random() > 0.2) {
+                    this.isCustom = true;
+                    this.image = customImages[Math.floor(Math.random() * customImages.length)];
+                    this.radius = 36;
+                } else {
+                    this.isCustom = false;
+                    this.radius = 30;
+                    const defaults = ['🏆', '⭐', '🍎', '🥇', '💎'];
+                    this.emoji = defaults[Math.floor(Math.random() * defaults.length)];
+                }
+            }
+
+            update() {
+                this.y += this.vy;
+                this.rotation += this.rotSpeed;
+            }
+
+            draw() {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.rotate(this.rotation);
+                if (this.isCustom && this.image) {
+                    ctx.imageSmoothingEnabled = true;
+                    ctx.imageSmoothingQuality = 'high';
+
+                    ctx.save();
+                    ctx.beginPath();
+                    ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
+                    ctx.closePath();
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fill();
+                    ctx.clip();
+                    ctx.drawImage(this.image, -this.radius, -this.radius, this.radius * 2, this.radius * 2);
+                    ctx.restore();
+
+                    ctx.strokeStyle = '#2563eb';
+                    ctx.lineWidth = 3;
+                    ctx.beginPath();
+                    ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
+                    ctx.stroke();
+                } else {
+                    ctx.font = '40px sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(this.emoji, 0, 0);
+                }
+                ctx.restore();
+            }
+        }
+
+        // Particle Class for Hit Effects
+        class Particle {
+            constructor(x, y, text, color) {
+                this.x = x;
+                this.y = y;
+                this.text = text;
+                this.color = color;
+                this.alpha = 1;
+                this.vy = -2.5;
+                this.scale = 1;
+            }
+            update() {
+                this.y += this.vy;
+                this.alpha -= 0.03;
+                this.scale += 0.02;
+            }
+            draw() {
+                ctx.save();
+                ctx.globalAlpha = Math.max(0, this.alpha);
+                ctx.font = 'bold 20px Poppins, sans-serif';
+                ctx.fillStyle = this.color;
+                ctx.textAlign = 'center';
+                ctx.fillText(this.text, this.x, this.y);
+                ctx.restore();
+            }
+        }
+
+        function startGame() {
+            initAudio();
+            score = 0;
+            lives = 5;
+            gameSpeedMultiplier = 1;
+            spawnInterval = 70;
+            items = [];
+            projectiles = [];
+            particles = [];
+            player.x = canvas.width / 2;
+            player.targetX = canvas.width / 2;
+
+            document.getElementById('menu-screen').classList.add('hidden');
+            document.getElementById('gameover-screen').classList.add('hidden');
+            document.getElementById('hud').classList.remove('hidden');
+            
+            updateHUD();
+            gameState = 'PLAYING';
+        }
+
+        function gameOver() {
+            gameState = 'GAMEOVER';
+            document.getElementById('hud').classList.add('hidden');
+            document.getElementById('gameover-screen').classList.remove('hidden');
+            document.getElementById('final-score').textContent = score;
+
+            if (score > highScore) {
+                highScore = score;
+                localStorage.setItem('copilot_shooter_highscore', highScore);
+                document.getElementById('high-score-val').textContent = highScore;
+            }
+            document.getElementById('best-score').textContent = highScore;
+        }
+
+        function updateHUD() {
+            document.getElementById('score-val').textContent = score;
+            let hearts = '';
+            for (let i = 0; i < 5; i++) {
+                hearts += i < lives ? '❤️ ' : '🖤 ';
+            }
+            document.getElementById('lives-container').textContent = hearts.trim();
+        }
+
+        function loop() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = 'high';
+
+            if (gameState === 'PLAYING') {
+                player.x += (player.targetX - player.x) * player.speed;
+                const halfWidth = player.width / 2;
+                if (player.x < halfWidth) player.x = halfWidth;
+                if (player.x > canvas.width - halfWidth) player.x = canvas.width - halfWidth;
+
+                spawnTimer++;
+                if (spawnTimer >= spawnInterval) {
+                    spawnTimer = 0;
+                    items.push(new FallingTarget());
+                    if (spawnInterval > 30) spawnInterval -= 0.6;
+                    gameSpeedMultiplier += 0.006;
+                }
+
+                // Update Projectiles
+                for (let i = projectiles.length - 1; i >= 0; i--) {
+                    let proj = projectiles[i];
+                    proj.y += proj.vy;
+
+                    ctx.save();
+                    ctx.font = '24px sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText('✨', proj.x, proj.y);
+                    ctx.restore();
+
+                    if (proj.y < -20) {
+                        projectiles.splice(i, 1);
+                    }
+                }
+
+                // Update Falling Targets
+                for (let i = items.length - 1; i >= 0; i--) {
+                    let item = items[i];
+                    item.update();
+                    item.draw();
+
+                    let hit = false;
+                    for (let j = projectiles.length - 1; j >= 0; j--) {
+                        let p = projectiles[j];
+                        let dist = Math.hypot(p.x - item.x, p.y - item.y);
+                        if (dist < item.radius + p.radius) {
+                            hit = true;
+                            projectiles.splice(j, 1);
+                            
+                            if (item.isEvil) {
+                                lives--;
+                                playSound('miss');
+                                particles.push(new Particle(item.x, item.y, '-1 💣', '#e11d48'));
+                                updateHUD();
+                                if (lives <= 0) {
+                                    gameOver();
+                                }
+                            } else {
+                                score += 1;
+                                playSound('hit');
+                                particles.push(new Particle(item.x, item.y, '+1 🏆', '#2563eb'));
+                                updateHUD();
+                            }
+                            break;
+                        }
+                    }
+
+                    if (hit) {
+                        items.splice(i, 1);
+                        continue;
+                    }
+
+                    // Check if item hit bottom
+                    if (item.y > canvas.height + 40) {
+                        if (item.isEvil) {
+                            // Evil object reached bottom/player base
+                            lives--;
+                            playSound('miss');
+                            particles.push(new Particle(item.x, canvas.height - 50, '-1 💥', '#e11d48'));
+                            updateHUD();
+                            if (lives <= 0) {
+                                gameOver();
+                            }
+                        } else {
+                            // Good item missed
+                            lives--;
+                            playSound('miss');
+                            particles.push(new Particle(item.x, canvas.height - 50, '-1 💔', '#e11d48'));
+                            updateHUD();
+                            if (lives <= 0) {
+                                gameOver();
+                            }
+                        }
+                        items.splice(i, 1);
+                    }
+                }
+
+                // Update Particles
+                for (let i = particles.length - 1; i >= 0; i--) {
+                    let part = particles[i];
+                    part.update();
+                    part.draw();
+                    if (part.alpha <= 0) {
+                        particles.splice(i, 1);
+                    }
+                }
+
+                drawPlayer();
+            }
+
+            requestAnimationFrame(loop);
+        }
+
+        function drawPlayer() {
+            ctx.save();
+            ctx.translate(player.x, player.y);
+
+            // HondaJet Custom Canvas Drawing (Pointing Upwards)
+            ctx.imageSmoothingEnabled = true;
+
+            // Wings
+            ctx.fillStyle = '#e2e8f0';
+            ctx.beginPath();
+            ctx.moveTo(0, -10);
+            ctx.lineTo(-52, 15);
+            ctx.lineTo(-46, 26);
+            ctx.lineTo(0, 15);
+            ctx.lineTo(46, 26);
+            ctx.lineTo(52, 15);
+            ctx.closePath();
+            ctx.fill();
+            ctx.strokeStyle = '#cbd5e1';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // Fuselage (Sleek aerodynamic white body)
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath();
+            ctx.ellipse(0, 0, 14, 46, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#94a3b8';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // HondaJet Signature Blue Accent Stripe
+            ctx.fillStyle = '#2563eb';
+            ctx.beginPath();
+            ctx.ellipse(0, 5, 12, 26, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Cockpit Window (Dark tinted)
+            ctx.fillStyle = '#0f172a';
+            ctx.beginPath();
+            ctx.ellipse(0, -23, 8, 12, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Distinctive Over-The-Wing Engines (OTWEM) mounted on pylons
+            // Left Engine
+            ctx.fillStyle = '#64748b';
+            ctx.beginPath();
+            ctx.roundRect(-33, -3, 13, 25, 6);
+            ctx.fill();
+            ctx.fillStyle = '#1e293b';
+            ctx.beginPath();
+            ctx.ellipse(-26, -3, 6.5, 4, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Right Engine
+            ctx.fillStyle = '#64748b';
+            ctx.beginPath();
+            ctx.roundRect(20, -3, 13, 25, 6);
+            ctx.fill();
+            ctx.fillStyle = '#1e293b';
+            ctx.beginPath();
+            ctx.ellipse(26, -3, 6.5, 4, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Tail Fin
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath();
+            ctx.moveTo(0, 32);
+            ctx.lineTo(-16, 48);
+            ctx.lineTo(0, 42);
+            ctx.lineTo(16, 48);
+            ctx.closePath();
+            ctx.fill();
+            ctx.strokeStyle = '#cbd5e1';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+
+            // Jet Label Badge
+            ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
+            ctx.beginPath();
+            ctx.roundRect(-42, 52, 84, 20, 8);
+            ctx.fill();
+
+            ctx.fillStyle = '#38bdf8';
+            ctx.font = 'bold 10px Poppins, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('HONDAJET', 0, 62);
+
+            ctx.restore();
+        }
+
+        document.getElementById('start-btn').addEventListener('click', startGame);
+        document.getElementById('restart-btn').addEventListener('click', startGame);
+
+        requestAnimationFrame(loop);
+    </script>
+</body>
+</html>
